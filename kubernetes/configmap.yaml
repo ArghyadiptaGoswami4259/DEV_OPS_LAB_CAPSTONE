@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: taskflow-config
+  namespace: taskflow-prod
+data:
+  POSTGRES_DB: taskflow
+  DB_HOST: taskflow-db
+  DB_PORT: "5432"
+  DB_USER: taskflow
+  DB_SSLMODE: prefer
+  # The trailing address is the Minikube node IP used by the NodePort scrape.
+  # Replace it with the output of: minikube -p taskflow-capstone ip
+  APP_TRUSTED_HOSTS: "localhost,127.0.0.1,[::1],taskflow,taskflow.taskflow-prod.svc.cluster.local,192.168.67.2"
+  LOG_LEVEL: INFO
+  SEED_DEMO: "1"

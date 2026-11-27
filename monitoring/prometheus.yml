@@ -1,0 +1,14 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: taskflow
+    static_configs:
+      - targets: ['host.docker.internal:8090']
+
+  # NodePort of the taskflow-monitoring Service. Replace the address with
+  # `minikube -p taskflow-capstone ip` and keep it in sync with the
+  # APP_TRUSTED_HOSTS entry in kubernetes/configmap.yaml.
+  - job_name: taskflow-kubernetes
+    static_configs:
+      - targets: ['192.168.67.2:30090']
