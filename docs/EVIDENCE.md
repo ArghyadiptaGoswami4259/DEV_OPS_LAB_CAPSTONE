@@ -1,23 +1,29 @@
 # TaskFlow evidence gallery
 
 Every screenshot in this gallery was captured while re-validating the repository for this submission:
-each terminal image is the real output of the command shown in its title bar, and each configuration
-image is a rendering of the corresponding file in this repository. Captions state what the image
-proves and, where relevant, what it does not prove.
+each terminal image is the real output of the command shown in its title bar, configuration images are
+renderings of the actual files, charts are computed from this repository, and diagrams are drawn from
+the deployed manifests. Captions state what the image proves and, where relevant, what it does not.
 
 [Capstone report PDF](Capstone_Report.pdf) | [Report narrative](../REPORT.md) | [CSV index](evidence-index.csv)
 
 | Topic | Evidence |
 | --- | --- |
-| Foundation: repository, environment, tests, service | E01-E04 |
-| Observability and application surface | E05-E06 |
-| Containerisation | E07-E08 |
-| Continuous integration | E09-E10 |
-| Kubernetes | E11-E13 |
-| Infrastructure as code | E14-E15 |
-| Delivery, monitoring and logging | E16-E18 |
-| Release strategy and architecture | E19-E21 |
-| Application interface and validation | E22-E23 |
+| Foundation | E01–E04 |
+| Observability | E05–E30 |
+| Application | E06–E24 |
+| Containerisation | E07–E35 |
+| Continuous integration | E09–E21 |
+| Kubernetes | E11–E34 |
+| Infrastructure as code | E14 |
+| Configuration management | E15 |
+| Continuous delivery | E16 |
+| Release strategy | E19–E36 |
+| Architecture | E20 |
+| Quality | E23 |
+| Testing | E27 |
+| Repository metrics | E28–E31 |
+| Design | E32–E33 |
 
 
 ## E01 Repository structure and version control
@@ -157,3 +163,81 @@ proves and, where relevant, what it does not prove.
 **Figure 23 in the PDF · Quality.** All fourteen YAML files and twenty-one documents parse cleanly, every Python module byte-compiles and both shell scripts pass bash -n. This is the same validation Jenkins performs implicitly when it builds and applies the manifests.
 
 ![E23: Static validation of manifests, scripts and modules](evidence/E23.png)
+
+## E24 API contract and error handling
+
+**Figure 24 in the PDF · Application.** Six failure modes exercised against the running service: malformed JSON, failed field validation, an unsupported content type, a cross-origin write attempt, a method that the route does not allow, and a request while the database is unavailable. Every response is a JSON envelope with a stable error code and the same request ID that appears in the response header and in the log line.
+
+![E24: API contract and error handling](evidence/E24.png)
+
+## E25 Structured JSON application logs
+
+**Figure 25 in the PDF · Observability.** Every request produces one machine-readable log line with timestamp, severity, event, release version, request ID, route, status and duration in milliseconds. The route is the normalised template, so no task identifier, task text or query string is ever written to the log.
+
+![E25: Structured JSON application logs](evidence/E25.png)
+
+## E26 Prometheus counters before and after traffic
+
+**Figure 26 in the PDF · Observability.** Two scrapes taken before and after ten requests show exactly the expected increment, which is how a Grafana rate() panel is computed. The database-availability gauge also moves, because readiness is checked on every scrape.
+
+![E26: Prometheus counters before and after traffic](evidence/E26.png)
+
+## E27 Test inventory
+
+**Figure 27 in the PDF · Testing.** 46 collected cases: 31 unit cases that need no database and 15 integration cases that run against a real PostgreSQL schema created per test. Parametrisation is used for the status and priority matrix and for every rejected payload, which keeps the suite short and the coverage explicit.
+
+![E27: Test inventory](evidence/E27.png)
+
+## E28 Repository composition by area
+
+**Figure 28 in the PDF · Repository metrics.** The repository is dominated by the deployment material, not the application: manifests, infrastructure code and documentation outnumber the Flask modules. That distribution is expected in a DevOps capstone and is the clearest single measure of where the effort went.
+
+![E28: Repository composition by area](evidence/E28.png)
+
+## E29 Code volume by file type
+
+**Figure 29 in the PDF · Repository metrics.** YAML edges out Python because the delivery configuration is declarative, and the Markdown volume reflects the report, runbook and viva notes. The chart is useful when a reviewer asks how much of the project is application code versus platform code.
+
+![E29: Code volume by file type](evidence/E29.png)
+
+## E30 Endpoint latency measured locally
+
+**Figure 30 in the PDF · Observability.** Ten requests per endpoint through the real Gunicorn runtime image. The metrics endpoint is the slowest because it renders the whole registry and probes the database on every scrape, which is exactly why Prometheus scrapes it on an interval rather than a user path.
+
+![E30: Endpoint latency measured locally](evidence/E30.png)
+
+## E31 Evidence coverage by topic
+
+**Figure 31 in the PDF · Repository metrics.** Coverage is deliberately weighted towards delivery and observability, because those are the parts of a DevOps capstone that a reviewer cannot infer from source code alone. The chart also shows the gaps honestly: no Jenkins, Argo CD, Grafana or Kibana screens are included, because those services are not available in the environment that produced this report.
+
+![E31: Evidence coverage by topic](evidence/E31.png)
+
+## E32 Data model and constraints
+
+**Figure 32 in the PDF · Design.** Three tables inside one schema. The application table carries every rule twice — once as a Python validation and once as a PostgreSQL check — so a direct SQL write cannot bypass the contract. The migration ledger is what makes startup idempotent, and the seed marker is what makes the sample data safe to keep in an image.
+
+![E32: Data model and constraints](evidence/E32.png)
+
+## E33 Request lifecycle
+
+**Figure 33 in the PDF · Design.** A read request, its SQL round trip, the log line that records it, and the scrape that turns it into a metric. Showing them on one diagram makes the cost of observability explicit: the metrics scrape probes the database on every interval.
+
+![E33: Request lifecycle](evidence/E33.png)
+
+## E34 Kubernetes object graph
+
+**Figure 34 in the PDF · Kubernetes.** The ownership chain Argo CD maintains, the label path that turns a Service into live endpoints, and the references that feed configuration and credentials into the pods. The NodePort Service exists only so Prometheus can scrape the same pods from outside the cluster.
+
+![E34: Kubernetes object graph](evidence/E34.png)
+
+## E35 Multi-stage image build flow
+
+**Figure 35 in the PDF · Containerisation.** The base stage is the contract between testing and shipping: the test target and the runtime target differ only in what is added on top. Everything the runtime image does not contain is listed explicitly, because that list is the security argument.
+
+![E35: Multi-stage image build flow](evidence/E35.png)
+
+## E36 Blue-green release timeline
+
+**Figure 36 in the PDF · Release strategy.** The release as a sequence of small, reversible steps rather than one big switch. The last phase is the rollback window: the old colour stays warm and the previous selector value is one commit away.
+
+![E36: Blue-green release timeline](evidence/E36.png)

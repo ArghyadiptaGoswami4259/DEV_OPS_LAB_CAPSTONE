@@ -80,7 +80,16 @@ authentication.
 So that removing a file from Git never deletes a running workload by accident during a demonstration.
 The trade-off is that orphaned resources survive; that is an accepted risk for a lab.
 
-**15. Which parts are Terraform and which are Ansible, and why both?**
+**15. What do the charts in the report measure, and where does the data come from?**
+They are computed from the working tree, not typed by hand: file counts per area, lines per file type,
+and how many evidence items cover each topic. The latency chart is ten real requests per endpoint
+through Gunicorn. Re-running the report generator updates all of them.
+
+**16. Why is `/metrics` slower than `/health/live` in your measurement?**
+`/metrics` probes the database and serialises the whole Prometheus registry, while `/health/live`
+only returns a constant. That is why Prometheus scrapes on an interval and users never wait for it.
+
+**17. Which parts are Terraform and which are Ansible, and why both?**
 Terraform owns the lifecycle of the cluster object itself (create, replace, destroy). Ansible owns
 in-cluster configuration that is naturally task-shaped: wait for nodes, apply namespaces, quotas and
 limit ranges, and report changes. Splitting them keeps each tool doing what it is good at.
