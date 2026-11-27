@@ -98,7 +98,7 @@ removed from the Service endpoints, not restarted in a loop.
 
 ![TaskFlow dashboard](docs/evidence/E22.png)
 
-*Figure 2 — The dashboard served by the Compose stack, with the five synthetic sample tasks (E22).*
+*Figure 2 — The dashboard served by the Compose stack, with the five synthetic sample tasks (evidence E22).*
 
 The interface is server-rendered HTML with a small JavaScript module that talks to the JSON API. All
 task content is inserted with `textContent`, never with `innerHTML`, so a task title cannot inject
@@ -110,7 +110,7 @@ script, style, image and connect sources), `X-Frame-Options: DENY`, `nosniff`, `
 
 ![Route map](docs/evidence/E06.png)
 
-*Figure 3 — Registered routes and their methods (E06).*
+*Figure 3 — Registered routes and their methods (evidence E06).*
 
 | Method | Path | Purpose |
 | --- | --- | --- |
@@ -137,17 +137,54 @@ Migrations run under a transaction-scoped advisory lock keyed on the current sch
 starting at the same moment therefore cannot interleave DDL: one waits, the other applies, and both
 then see the ledger as complete.
 
+![TaskFlow data model](docs/evidence/E32.png)
+
+*Figure 4 — Data model and constraints (evidence E32).*
+
+Every rule exists twice: once in Python validation and once as a PostgreSQL check constraint.
+
+### 3.3  Request lifecycle
+
+![Request lifecycle](docs/evidence/E33.png)
+
+*Figure 5 — Request lifecycle (evidence E33).*
+
+One worker answers user traffic, readiness probes and metric scrapes, which is why the Prometheus
+registry is process-local and the worker count is one.
+
+### 3.4  API behaviour under failure
+
+The contract is easiest to assess by breaking it. Every rejected request returns the same JSON
+envelope, a stable machine-readable code, and the request ID that also appears in the response header
+and in the log line for that request.
+
+![API contract and error handling](docs/evidence/E24.png)
+
+*Figure 6 — API contract and error handling (evidence E24).*
+
+Live responses from the running service: malformed JSON, failed validation, wrong content type, a
+cross-origin write, a disallowed method and a database outage.
+
+| Condition | Status | `error.code` | What the client should do |
+| --- | --- | --- | --- |
+| Malformed JSON | 400 | `http_400` | Fix the payload |
+| Validation failure | 400 | `invalid_input` | Read the message and resubmit |
+| Wrong content type | 415 | `http_415` | Send `application/json` |
+| Cross-origin write | 403 | `http_403` | Use the application origin |
+| Method not allowed | 405 | `http_405` | Use a method listed in `Allow` |
+| Database unavailable | 503 | `database_unavailable` | Retry after readiness recovers |
+
 ---
 
 ## 4. Containerisation
 
 ![Dockerfile](docs/evidence/E07.png)
 
-*Figure 4 — Multi-stage build definition (E07).*
+*Figure 7 — Multi-stage build definition (evidence E07).*
 
 ![Compose stack](docs/evidence/E08.png)
 
-*Figure 5 — Local Compose stack (E08).*
+*Figure 8 — Local Compose stack (evidence E08).*
 
 | Property | Implementation |
 | --- | --- |
@@ -162,13 +199,20 @@ then see the ledger as complete.
 The runtime image deliberately contains no test dependencies, and the test image contains no
 difference in application code — the same files are tested and shipped.
 
+![Multi-stage image build](docs/evidence/E35.png)
+
+*Figure 9 — Multi-stage image build flow (evidence E35).*
+
+The base stage is the contract between testing and shipping; everything the runtime image does not
+contain is the security argument.
+
 ---
 
 ## 5. Automated testing
 
 ![Test run](docs/evidence/E03.png)
 
-*Figure 6 — Unit test execution (E03).*
+*Figure 10 — Unit test execution (evidence E03).*
 
 Testing is layered:
 
@@ -185,21 +229,28 @@ Testing is layered:
 target, and always tears the project and its volume down. The developer's own database is never
 touched.
 
+![Test inventory](docs/evidence/E27.png)
+
+*Figure 11 — Test inventory (evidence E27).*
+
+46 collected cases: 31 unit cases that need no database and 15 integration cases that each receive
+their own schema.
+
 ---
 
 ## 6. Continuous integration
 
 ![Pipeline diagram](docs/evidence/E21.png)
 
-*Figure 7 — Gated CI/CD flow (E21).*
+*Figure 12 — Gated CI/CD flow (evidence E21).*
 
 ![Pipeline stages](docs/evidence/E09.png)
 
-*Figure 8 — Declarative pipeline stages (E09).*
+*Figure 13 — Declarative pipeline stages (evidence E09).*
 
 ![Jenkins stage definitions](docs/evidence/E10.png)
 
-*Figure 9 — Test, scan and build stages in the Jenkinsfile (E10).*
+*Figure 14 — Test, scan and build stages in the Jenkinsfile (evidence E10).*
 
 | Stage | Command | Gate |
 | --- | --- | --- |
@@ -222,11 +273,11 @@ not need cluster credentials at all — Argo CD does the deployment.
 
 ![Terraform](docs/evidence/E14.png)
 
-*Figure 10 — Terraform provisioning of the dedicated cluster (E14).*
+*Figure 15 — Terraform provisioning of the dedicated cluster (evidence E14).*
 
 ![Ansible](docs/evidence/E15.png)
 
-*Figure 11 — Ansible configuration of namespaces and quotas (E15).*
+*Figure 16 — Ansible configuration of namespaces and quotas (evidence E15).*
 
 Terraform manages a `terraform_data` resource whose `local-exec` provisioner starts a dedicated
 Minikube profile (`taskflow-capstone`, 4 CPU, 4096 MB). The profile name, CPU count and memory are
@@ -251,15 +302,15 @@ created or configured, so a second run is **idempotent** — a property worth sh
 
 ![Manifest inventory](docs/evidence/E11.png)
 
-*Figure 12 — Resource inventory of the manifests (E11).*
+*Figure 17 — Resource inventory of the manifests (evidence E11).*
 
 ![Deployment manifest](docs/evidence/E12.png)
 
-*Figure 13 — Application Deployment and Service (E12).*
+*Figure 18 — Application Deployment and Service (evidence E12).*
 
 ![PostgreSQL StatefulSet](docs/evidence/E13.png)
 
-*Figure 14 — Database StatefulSet with persistent storage (E13).*
+*Figure 19 — Database StatefulSet with persistent storage (evidence E13).*
 
 | Object | Kind | Notes |
 | --- | --- | --- |
@@ -283,13 +334,19 @@ The database persists through `volumeClaimTemplates`, so recreating the pod re-a
 volume and the tasks survive. The bootstrap SQL runs only on a fresh volume and creates a login that
 cannot create databases, roles or replications.
 
+![Kubernetes object graph](docs/evidence/E34.png)
+
+*Figure 20 — Kubernetes object graph (evidence E34).*
+
+Ownership, routing, state and configuration in one view; only the Secret is created outside Argo CD.
+
 ---
 
 ## 9. Continuous delivery with GitOps
 
 ![Argo CD application](docs/evidence/E16.png)
 
-*Figure 15 — Argo CD Application definition (E16).*
+*Figure 21 — Argo CD Application definition (evidence E16).*
 
 Argo CD watches `main:kubernetes` in this repository and syncs it into `taskflow-prod` on the
 dedicated cluster.
@@ -311,15 +368,15 @@ converges back to the previous state.
 
 ![Metrics endpoint](docs/evidence/E05.png)
 
-*Figure 16 — Prometheus metrics exposed by the application (E05).*
+*Figure 22 — Prometheus metrics exposed by the application (evidence E05).*
 
 ![Prometheus configuration](docs/evidence/E17.png)
 
-*Figure 17 — Scrape configuration for Compose and Kubernetes targets (E17).*
+*Figure 23 — Scrape configuration for Compose and Kubernetes targets (evidence E17).*
 
 ![Log pipeline](docs/evidence/E18.png)
 
-*Figure 18 — Logstash pipeline for centralised logging (E18).*
+*Figure 24 — Logstash pipeline for centralised logging (evidence E18).*
 
 Metrics are application-level, not only container-level:
 
@@ -340,10 +397,33 @@ Grafana is provisioned next to Prometheus in the same Compose project and uses
 `taskflow_database_available`, `sum(taskflow_http_requests_total)` and an average latency expression
 built from the histogram sum and count.
 
+![Prometheus counters before and after traffic](docs/evidence/E26.png)
+
+*Figure 25 — Prometheus counters before and after traffic (evidence E26).*
+
+Ten requests between two scrapes move the counter by exactly ten, which is the arithmetic a `rate()`
+panel performs. Nothing in the metric names or labels reveals a task title, a task identifier or a
+query string.
+
+![Endpoint latency measured locally](docs/evidence/E30.png)
+
+*Figure 26 — Endpoint latency measured locally (evidence E30).*
+
+Ten requests per endpoint through the runtime image. `/metrics` is the slowest because every scrape
+probes the database and renders the whole registry, which is why Prometheus owns that path and users
+do not.
+
 Logging follows the same principle: the application writes one JSON object per event with timestamp,
 severity, event name, request ID, route, status and duration, and never logs task text, query strings
 or credentials. The Kubernetes snapshot is forwarded with `logging/forward-logs.sh`, parsed by
 Logstash as `json_lines`, and indexed into Elasticsearch under `taskflow-logs-*` for Kibana.
+
+![Structured JSON application logs](docs/evidence/E25.png)
+
+*Figure 27 — Structured JSON application logs (evidence E25).*
+
+One JSON object per event, with the release version, a request ID that matches the response header,
+the normalised route, the status and the duration.
 
 ---
 
@@ -351,7 +431,7 @@ Logstash as `json_lines`, and indexed into Elasticsearch under `taskflow-logs-*`
 
 ![Blue-green](docs/evidence/E19.png)
 
-*Figure 19 — Blue-green routing with a Git-controlled switch (E19).*
+*Figure 28 — Blue-green routing with a Git-controlled switch (evidence E19).*
 
 Two Deployments run side by side: `taskflow` (Blue) and `taskflow-green` (Green), each with two
 replicas and a different image tag. The production Service selector decides which colour receives
@@ -366,25 +446,64 @@ traffic.
 Because the manifest lives in Git, the release is reviewable and reversible by anyone with repository
 access, and the `GitOps:` commit message stops Jenkins from triggering an unnecessary build.
 
+![Blue-green release timeline](docs/evidence/E36.png)
+
+*Figure 29 — Blue-green release timeline (evidence E36).*
+
+The release as a sequence of small reversible steps rather than one switch, ending in an explicit
+rollback window while the old colour stays warm.
+
 ---
 
-## 12. Verification results
+## 12. Repository and evidence metrics
+
+Beyond the runtime screenshots, three charts describe the repository itself. They are generated from
+the working tree, so they change automatically as the project grows.
+
+![Repository composition by area](docs/evidence/E28.png)
+
+*Figure 30 — Repository composition by area (evidence E28).*
+
+The delivery material dominates the repository: manifests, infrastructure code, documentation and
+tests together outweigh the Flask application modules. That distribution is the clearest single
+measure of what a DevOps capstone actually consists of.
+
+![Code volume by file type](docs/evidence/E29.png)
+
+*Figure 31 — Code volume by file type (evidence E29).*
+
+YAML edges out Python because the delivery configuration is declarative, and Markdown volume reflects
+the report, runbook and viva notes. Blank and comment lines are included: the chart measures the
+artefact, not the effort.
+
+![Evidence coverage by topic](docs/evidence/E31.png)
+
+*Figure 32 — Evidence coverage by topic (evidence E31).*
+
+Coverage is deliberately weighted towards delivery and observability, because those are the parts a
+reviewer cannot infer from source code alone. The chart also shows the gap honestly: no Jenkins,
+Argo CD, Grafana or Kibana screens are included, because those services are not available in the
+environment that produced this report.
+
+---
+
+## 13. Verification results
 
 ![Repository and Git history](docs/evidence/E01.png)
 
-*Figure 20 — Repository structure and version-control state (E01).*
+*Figure 33 — Repository structure and version-control state (evidence E01).*
 
 ![Dependency check](docs/evidence/E02.png)
 
-*Figure 21 — Pinned dependencies verified with pip check (E02).*
+*Figure 34 — Pinned dependencies verified with pip check (evidence E02).*
 
 ![Service startup](docs/evidence/E04.png)
 
-*Figure 22 — Gunicorn startup and endpoint responses (E04).*
+*Figure 35 — Gunicorn startup and endpoint responses (evidence E04).*
 
 ![Static validation](docs/evidence/E23.png)
 
-*Figure 23 — Manifest, script and module validation (E23).*
+*Figure 36 — Manifest, script and module validation (evidence E23).*
 
 | Check | Command | Result |
 | --- | --- | --- |
@@ -399,14 +518,14 @@ access, and the `GitOps:` commit message stops Jenkins from triggering an unnece
 | Security headers | `curl -I /` | `nosniff`, `X-Request-ID`, CSP present |
 | Metrics | `curl /metrics` | Prometheus text with `taskflow_*` series |
 
-Readiness returning 503 in Figure 22 is not a failure of the application: on the verification host no
+Readiness returning 503 in the E04 screenshot is not a failure of the application: on the verification host no
 PostgreSQL server is present, and the correct response is to report *not ready* while liveness keeps
 answering. On the lab machine, where the database container is running, the same check returns 200 and
-the dashboard displays the five sample tasks (Figure 2).
+the dashboard displays the five sample tasks (see the E22 screenshot).
 
 ---
 
-## 13. Discussion, limitations and future work
+## 14. Discussion, limitations and future work
 
 **What the project establishes.** A single artefact flows from source to a running, observable
 deployment without manual configuration; every stage is declared in the repository; and the runtime
@@ -430,7 +549,7 @@ Jenkins so test trends are visible; and replace the batch log snapshot with a Da
 
 ---
 
-## 14. Conclusion
+## 15. Conclusion
 
 The capstone turns a small task manager into a complete delivery pipeline. The valuable result is not
 the task list — it is the property that every change can be tested the same way it runs, shipped as

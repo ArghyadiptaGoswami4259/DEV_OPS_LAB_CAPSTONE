@@ -22,9 +22,9 @@ monitoring, a centralised ELK logging stack, and a Git-controlled blue-green rel
 
 | Document | Contents |
 | --- | --- |
-| [Capstone report PDF](docs/Capstone_Report.pdf) | Full submission report with design, implementation and every screenshot |
+| [Capstone report PDF](docs/Capstone_Report.pdf) | 40-page submission report: design, implementation, 36 figures, results and limitations |
 | [Report in Markdown](REPORT.md) | The same report readable directly on GitHub |
-| [Evidence gallery](docs/EVIDENCE.md) | All 23 numbered screenshots with captions |
+| [Evidence gallery](docs/EVIDENCE.md) | All 36 screenshots and charts with captions |
 | [Viva guide](docs/VIVA_GUIDE.md) | Short answers and practice questions |
 | [Execution runbook](docs/RUNBOOK.md) | Local startup, infrastructure, CI/CD, monitoring and troubleshooting |
 | [Submission checklist](docs/SUBMISSION_CHECKLIST.md) | Upload steps and evidence checks |
@@ -77,6 +77,11 @@ connections and the local setup.
 | Monitoring | Prometheus scrapes Compose and Kubernetes endpoints; Grafana displays availability and request metrics |
 | Logging | Kubernetes log snapshot sent through Logstash to Elasticsearch and viewed in Kibana |
 | Release demonstration | Blue and Green deployments; Git-controlled Service selector switch and rollback |
+| Documentation | 40-page PDF report, Markdown report, evidence gallery with CSV index, runbook, viva guide |
+
+The report also contains three charts computed from this repository (file composition, code volume
+and evidence coverage), four design diagrams (data model, request lifecycle, Kubernetes object graph,
+image build flow) and measured latency for every endpoint.
 
 The screenshots and result explanations are in the [report](REPORT.md) and the
 [evidence gallery](docs/EVIDENCE.md).
@@ -174,7 +179,7 @@ explaining the project:
 ## Notes for the reviewer
 
 The report PDF, the Markdown report, the evidence gallery and this README were regenerated for this
-submission. The screenshots in `docs/evidence/` were captured while re-validating the repository in a
+submission. The PDF is generated directly from `REPORT.md`, so the two always match. The screenshots in `docs/evidence/` were captured while re-validating the repository in a
 clean Linux environment: every terminal image is the real output of the command shown, and each
 configuration image is a rendering of the file in this repository. Hosted dashboards (Jenkins, Argo
 CD, Grafana, Kibana) require the local lab to be running; the runbook explains how to open them and
